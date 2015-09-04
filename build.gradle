@@ -43,10 +43,6 @@ apply from: "$rootDir/gradle/conflicts.gradle"
 dependencies {
     compile "org.codehaus.groovy:groovy-all:${groovyVersion}:indy"
     compile "org.kurron:tools-groovy:${toolsGroovyVersion}"
-
-    runtime("com.h2database:h2")
-    runtime("mysql:mysql-connector-java")
-    runtime("org.postgresql:postgresql:9.4-1201-jdbc41")
 }
 
 defaultTasks << 'clean'
