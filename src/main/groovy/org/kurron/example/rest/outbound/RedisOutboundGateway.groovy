@@ -43,6 +43,6 @@ class RedisOutboundGateway extends AbstractFeedbackAware implements PersistenceO
     @Override
     RedisResource retrieve( final UUID id ) {
         feedbackProvider.sendFeedback( REDIS_RETRIEVE_INFO, id )
-        new RedisResource( payload: entries[PAYLOAD_KEY] as byte[], contentType: 'application/json;ronbo=true' )
+        new RedisResource( payload: new byte[128], contentType: 'application/json;ronbo=true' )
     }
 }
