@@ -34,7 +34,15 @@ class RestInboundGatewayIntegrationTest extends Specification {
 
         given: 'a valid command'
         def builder = new JsonBuilder()
-        def command = 'bob'
+        builder {
+            gateway 'fast'
+            mongodb 'normal'
+            redis   'slow'
+            mysql 'dead'
+            postgresql 'fast'
+            rabbitmq 'fast'
+        }
+        def command = builder.toPrettyString()
 
         when: 'the POST request is made'
         def bob = 1
