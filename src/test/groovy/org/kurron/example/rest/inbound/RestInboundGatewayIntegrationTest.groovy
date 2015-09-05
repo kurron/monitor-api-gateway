@@ -17,10 +17,22 @@
 package org.kurron.example.rest.inbound
 
 import groovy.json.JsonBuilder
+import groovy.json.JsonSlurper
+import java.util.concurrent.Future
 import org.kurron.example.rest.Application
+import org.kurron.traits.GenerationAbility
+import org.springframework.beans.factory.annotation.Autowired
+import org.springframework.beans.factory.annotation.Value
 import org.springframework.boot.test.SpringApplicationContextLoader
 import org.springframework.boot.test.WebIntegrationTest
+import org.springframework.http.HttpEntity
+import org.springframework.http.HttpHeaders
+import org.springframework.http.HttpStatus
+import org.springframework.http.MediaType
+import org.springframework.http.ResponseEntity
 import org.springframework.test.context.ContextConfiguration
+import org.springframework.web.client.AsyncRestOperations
+import org.springframework.web.util.UriComponentsBuilder
 import spock.lang.Specification
 
 /**
@@ -28,26 +40,59 @@ import spock.lang.Specification
  **/
 @ContextConfiguration( loader = SpringApplicationContextLoader, classes = [Application] )
 @WebIntegrationTest( randomPort = true )
-class RestInboundGatewayIntegrationTest extends Specification {
+class RestInboundGatewayIntegrationTest extends Specification implements GenerationAbility {
+
+    @Autowired
+    AsyncRestOperations theTemplate
+
+    @Value( '${local.server.port}' )
+    int port
+
+    def expectations = [gateway: randomHexString(),
+                        mongodb: randomHexString(),
+                        redis: randomHexString(),
+                        mysql: randomHexString(),
+                        postgresql: randomHexString(),
+                        rabbitmq: randomHexString()]
 
     def 'exercise happy path'() {
 
-        given: 'a valid command'
+        given: 'a valid environment'
+        assert theTemplate
+        assert port
+
         def builder = new JsonBuilder()
         builder {
-            gateway 'fast'
-            mongodb 'normal'
-            redis   'slow'
-            mysql 'dead'
-            postgresql 'fast'
-            rabbitmq 'fast'
+            gateway expectations.gateway
+            mongodb expectations.mongodb
+            redis   expectations.redis
+            mysql expectations.mysql
+            postgresql expectations.postgresql
+            rabbitmq expectations.rabbitmq
         }
         def command = builder.toPrettyString()
 
-        when: 'the POST request is made'
-        def bob = 1
+        and: 'the POST request is made'
+        def uri = UriComponentsBuilder.newInstance().scheme( 'http' ).host( 'localhost' ).port( port ).path( '/' ).build().toUri()
+        def headers = new HttpHeaders()
+        headers.setContentType( MediaType.APPLICATION_JSON )
+        headers.set( 'X-Correlation-Id', randomHexString() )
+        HttpEntity<String> request = new HttpEntity<>( command, headers )
+        Future<ResponseEntity<String>> future = theTemplate.postForEntity( uri, request, String )
+
+        when: 'the answer comes back'
+        def response = future.get()
 
         then: 'the endpoint returns with 200'
-        false
+        response.statusCode == HttpStatus.OK
+
+        and: 'the expected fields are present'
+        def json = new JsonSlurper().parseText( response.body )
+        json.gateway == expectations.gateway
+        json.mongodb == expectations.mongodb
+        json.redis == expectations.redis
+        json.mysql == expectations.mysql
+        json.postgresql == expectations.postgresql
+        json.rabbitmq == expectations.rabbitmq
     }
 }
