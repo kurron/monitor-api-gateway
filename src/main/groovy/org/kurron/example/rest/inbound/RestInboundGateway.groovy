@@ -17,6 +17,7 @@ package org.kurron.example.rest.inbound
 
 import static org.springframework.http.MediaType.APPLICATION_JSON_VALUE
 import static org.springframework.web.bind.annotation.RequestMethod.POST
+import groovy.json.JsonSlurper
 import org.kurron.example.rest.ApplicationProperties
 import org.kurron.feedback.AbstractFeedbackAware
 import org.kurron.stereotype.InboundRestGateway
@@ -26,6 +27,8 @@ import org.springframework.http.HttpStatus
 import org.springframework.http.ResponseEntity
 import org.springframework.web.bind.annotation.RequestBody
 import org.springframework.web.bind.annotation.RequestMapping
+import org.springframework.web.client.AsyncRestOperations
+import org.springframework.web.util.UriComponentsBuilder
 
 /**
  * Handles inbound REST requests.
@@ -44,12 +47,18 @@ class RestInboundGateway extends AbstractFeedbackAware {
      */
     private final CounterService counterService
 
+    /**
+     * Manages REST interactions.
+     **/
+    private final AsyncRestOperations theTemplate
+
     @Autowired
     RestInboundGateway( final ApplicationProperties aConfiguration,
-                        final CounterService aCounterService ) {
+                        final CounterService aCounterService,
+                        final AsyncRestOperations aTemplate ) {
         configuration = aConfiguration
         counterService = aCounterService
-
+        theTemplate = aTemplate
     }
 
     /*
@@ -73,8 +82,12 @@ class RestInboundGateway extends AbstractFeedbackAware {
     }
      */
     @RequestMapping( method = POST, consumes = [APPLICATION_JSON_VALUE], produces = [APPLICATION_JSON_VALUE] )
-    ResponseEntity<String> store( @RequestBody final String request ) {
-        counterService.increment( 'example.upload' )
+    ResponseEntity<String> post( @RequestBody final String request ) {
+        counterService.increment( 'example.post' )
+        def slurper = new JsonSlurper().parseText( request ) as Map<String,String>
+        def urls = slurper.collect() { k, v -> UriComponentsBuilder.newInstance().scheme( 'http' ).host( 'google.com' ).path( '/' ).build().toUri().toURL() }
+        def mapper = { URL url -> url.text }
+        def results = urls.stream().parallel().map( mapper ).collect()
         new ResponseEntity<String>( request, HttpStatus.OK )
     }
 }
