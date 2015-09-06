@@ -18,6 +18,7 @@ package org.kurron.example.rest.inbound
 import static groovyx.gpars.GParsPool.withPool
 import static org.springframework.http.MediaType.APPLICATION_JSON_VALUE
 import static org.springframework.web.bind.annotation.RequestMethod.POST
+import groovy.json.JsonBuilder
 import groovy.json.JsonSlurper
 import org.kurron.example.rest.ApplicationProperties
 import org.kurron.feedback.AbstractFeedbackAware
@@ -92,8 +93,9 @@ class RestInboundGateway extends AbstractFeedbackAware {
                 def result = url.text
                 [service: k, command: v, result: result]
             }
-            def ronn = 1
-        }
-        new ResponseEntity<String>( request, HttpStatus.OK )
+            def builder = new JsonBuilder( results )
+            // for now, echo back the request
+            new ResponseEntity<String>( request, HttpStatus.OK )
+        } as ResponseEntity<String>
     }
 }

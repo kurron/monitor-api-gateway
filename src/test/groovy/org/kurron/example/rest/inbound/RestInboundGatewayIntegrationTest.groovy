@@ -48,12 +48,9 @@ class RestInboundGatewayIntegrationTest extends Specification implements Generat
     @Value( '${local.server.port}' )
     int port
 
-    def expectations = [gateway: randomHexString(),
-                        mongodb: randomHexString(),
-                        redis: randomHexString(),
-                        mysql: randomHexString(),
-                        postgresql: randomHexString(),
-                        rabbitmq: randomHexString()]
+    def possibleCommands = ['fast', 'normal', 'slow', 'dead']
+    def services = ['gateway', 'mongodb', 'redis', 'mysql', 'postgresql', 'rabbitmq']
+    def expectations = services.collectEntries { [(it): randomElement(possibleCommands)] }
 
     def 'exercise happy path'() {
 
@@ -61,15 +58,7 @@ class RestInboundGatewayIntegrationTest extends Specification implements Generat
         assert theTemplate
         assert port
 
-        def builder = new JsonBuilder()
-        builder {
-            gateway expectations.gateway
-            mongodb expectations.mongodb
-            redis   expectations.redis
-            mysql expectations.mysql
-            postgresql expectations.postgresql
-            rabbitmq expectations.rabbitmq
-        }
+        def builder = new JsonBuilder( expectations )
         def command = builder.toPrettyString()
 
         and: 'the POST request is made'
@@ -87,12 +76,7 @@ class RestInboundGatewayIntegrationTest extends Specification implements Generat
         response.statusCode == HttpStatus.OK
 
         and: 'the expected fields are present'
-        def json = new JsonSlurper().parseText( response.body )
-        json.gateway == expectations.gateway
-        json.mongodb == expectations.mongodb
-        json.redis == expectations.redis
-        json.mysql == expectations.mysql
-        json.postgresql == expectations.postgresql
-        json.rabbitmq == expectations.rabbitmq
+        def json = new JsonSlurper().parseText( response.body ) as Map<String,String>
+        json == expectations // a lame test but works for now
     }
 }
