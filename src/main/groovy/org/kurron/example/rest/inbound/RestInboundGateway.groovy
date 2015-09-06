@@ -15,6 +15,7 @@
  */
 package org.kurron.example.rest.inbound
 
+import static groovyx.gpars.GParsPool.withPool
 import static org.springframework.http.MediaType.APPLICATION_JSON_VALUE
 import static org.springframework.web.bind.annotation.RequestMethod.POST
 import groovy.json.JsonSlurper
@@ -85,9 +86,14 @@ class RestInboundGateway extends AbstractFeedbackAware {
     ResponseEntity<String> post( @RequestBody final String request ) {
         counterService.increment( 'example.post' )
         def slurper = new JsonSlurper().parseText( request ) as Map<String,String>
-        def urls = slurper.collect() { k, v -> UriComponentsBuilder.newInstance().scheme( 'http' ).host( 'google.com' ).path( '/' ).build().toUri().toURL() }
-        def mapper = { URL url -> url.text }
-        def results = urls.stream().parallel().map( mapper ).collect()
+        withPool( slurper.size() ) {
+            def results = slurper.makeConcurrent().collect { k, v ->
+                def url = UriComponentsBuilder.newInstance().scheme( 'http' ).host( 'google.com' ).path( '/' ).build().toUri().toURL()
+                def result = url.text
+                [service: k, command: v, result: result]
+            }
+            def ronn = 1
+        }
         new ResponseEntity<String>( request, HttpStatus.OK )
     }
 }

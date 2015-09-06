@@ -79,5 +79,8 @@
     <orderEntry type="library" name="Gradle: org.springframework.security:spring-security-config:3.2.7.RELEASE" level="project" />
     <orderEntry type="library" name="Gradle: org.springframework.security:spring-security-web:3.2.7.RELEASE" level="project" />
     <orderEntry type="library" name="Gradle: org.springframework.security:spring-security-core:3.2.7.RELEASE" level="project" />
+    <orderEntry type="library" name="Gradle: org.codehaus.gpars:gpars:1.2.1" level="project" />
+    <orderEntry type="library" name="Gradle: org.multiverse:multiverse-core:0.7.0" level="project" />
+    <orderEntry type="library" name="Gradle: org.codehaus.jsr166-mirror:jsr166y:1.7.0" level="project" />
   </component>
 </module>
