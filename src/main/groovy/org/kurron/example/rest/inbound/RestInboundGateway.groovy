@@ -88,14 +88,17 @@ class RestInboundGateway extends AbstractFeedbackAware {
         counterService.increment( 'example.post' )
         def slurper = new JsonSlurper().parseText( request ) as Map<String,String>
         withPool( slurper.size() ) {
-            def results = slurper.makeConcurrent().collect { k, v ->
-                def url = UriComponentsBuilder.newInstance().scheme( 'http' ).host( 'google.com' ).path( '/' ).build().toUri().toURL()
-                def result = url.text
+            def results = slurper.makeConcurrent().collect { String k, v ->
+                def result = toEndPoint( k ).text
                 [service: k, command: v, result: result]
             }
             def builder = new JsonBuilder( results )
             // for now, echo back the request
             new ResponseEntity<String>( request, HttpStatus.OK )
         } as ResponseEntity<String>
+    }
+
+    private static URL toEndPoint( String service ) {
+        UriComponentsBuilder.newInstance().scheme( 'http' ).host( 'google.com' ).path( '/' ).build().toUri().toURL()
     }
 }
