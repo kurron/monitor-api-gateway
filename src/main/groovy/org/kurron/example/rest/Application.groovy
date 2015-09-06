@@ -24,6 +24,7 @@ import org.springframework.boot.context.properties.EnableConfigurationProperties
 import org.springframework.context.annotation.Bean
 import org.springframework.http.converter.json.Jackson2ObjectMapperBuilder
 import org.springframework.web.client.AsyncRestTemplate
+import org.springframework.web.client.RestTemplate
 
 /**
  * This is the main entry into the application. Running from the command-line using embedded Tomcat will invoke
@@ -81,5 +82,10 @@ class Application {
     @Bean
     AsyncRestTemplate asyncRestTemplate() {
         new AsyncRestTemplate()
+    }
+
+    @Bean
+    RestTemplate restTemplate() {
+        new RestTemplate()
     }
 }

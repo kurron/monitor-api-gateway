@@ -29,7 +29,7 @@ import org.springframework.http.HttpStatus
 import org.springframework.http.ResponseEntity
 import org.springframework.web.bind.annotation.RequestBody
 import org.springframework.web.bind.annotation.RequestMapping
-import org.springframework.web.client.AsyncRestOperations
+import org.springframework.web.client.RestOperations
 import org.springframework.web.util.UriComponentsBuilder
 
 /**
@@ -52,12 +52,12 @@ class RestInboundGateway extends AbstractFeedbackAware {
     /**
      * Manages REST interactions.
      **/
-    private final AsyncRestOperations theTemplate
+    private final RestOperations theTemplate
 
     @Autowired
     RestInboundGateway( final ApplicationProperties aConfiguration,
                         final CounterService aCounterService,
-                        final AsyncRestOperations aTemplate ) {
+                        final RestOperations aTemplate ) {
         configuration = aConfiguration
         counterService = aCounterService
         theTemplate = aTemplate
@@ -89,8 +89,8 @@ class RestInboundGateway extends AbstractFeedbackAware {
         def slurper = new JsonSlurper().parseText( request ) as Map<String,String>
         withPool( slurper.size() ) {
             def results = slurper.makeConcurrent().collect { String k, v ->
-                def result = toEndPoint( k ).text
-                [service: k, command: v, result: result]
+                ResponseEntity<String> response = theTemplate.getForEntity( toEndPoint( k ), String )
+                [service: k, command: v, status: response.statusCode, result: response.body]
             }
             def builder = new JsonBuilder( results )
             // for now, echo back the request
@@ -98,7 +98,7 @@ class RestInboundGateway extends AbstractFeedbackAware {
         } as ResponseEntity<String>
     }
 
-    private static URL toEndPoint( String service ) {
-        UriComponentsBuilder.newInstance().scheme( 'http' ).host( 'google.com' ).path( '/' ).build().toUri().toURL()
+    private static URI toEndPoint( String service ) {
+        UriComponentsBuilder.newInstance().scheme( 'http' ).host( 'google.com' ).path( '/' ).build().toUri()
     }
 }
