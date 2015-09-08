@@ -16,8 +16,6 @@
 package org.kurron.example.rest.exception
 
 import static org.kurron.example.rest.feedback.ExampleFeedbackContext.GENERIC_ERROR
-import org.kurron.example.rest.inbound.ErrorBlock
-import org.kurron.example.rest.inbound.HypermediaControl
 import org.kurron.feedback.FeedbackAware
 import org.kurron.feedback.FeedbackProvider
 import org.kurron.feedback.NullFeedbackProvider
@@ -53,17 +51,13 @@ class GlobalExceptionHandler extends ResponseEntityExceptionHandler implements F
     }
 
     @Override
-    protected ResponseEntity<HypermediaControl> handleExceptionInternal( Exception e,
-                                                                    Object body,
-                                                                    HttpHeaders headers,
-                                                                    HttpStatus status,
-                                                                    WebRequest request ) {
+    protected ResponseEntity<String> handleExceptionInternal( Exception e,
+                                                              Object body,
+                                                              HttpHeaders headers,
+                                                              HttpStatus status,
+                                                              WebRequest request ) {
         sendFeedback( GENERIC_ERROR, e.message )
-        def control = new HypermediaControl( httpCode: status.value() )
-        control.errorBlock = new ErrorBlock( code: GENERIC_ERROR.code,
-                                             message: e.message,
-                                             developerMessage: 'Indicates that the exception was not handled explicitly and is being handled as a generic error' )
-        wrapInResponseEntity( control, status, headers )
+        new ResponseEntity<String>( '{}', status )
     }
 
     /**
@@ -72,24 +66,9 @@ class GlobalExceptionHandler extends ResponseEntityExceptionHandler implements F
      * @return the constructed response entity, containing details about the error.
      */
     @ExceptionHandler( AbstractError )
-    static ResponseEntity<HypermediaControl> handleApplicationException( AbstractError e ) {
-        def control = new HypermediaControl( httpCode: e.httpStatus.value() ).with {
-            errorBlock = new ErrorBlock( code: e.code, message: e.message, developerMessage: e.developerMessage )
-            it
-        }
-        wrapInResponseEntity( control, e.httpStatus )
+    static ResponseEntity<String> handleApplicationException( AbstractError e ) {
+        new ResponseEntity<String>( '{}', e.httpStatus )
     }
 
-    /**
-     * Wraps the provided control in a response entity.
-     * @param control the control to return in the body of the response.
-     * @param status the HTTP status to return.
-     * @param headers the HTTP headers to return. If provided, the existing headers are used, otherwise new headers are created.
-     * @return the response entity.
-     */
-    private static ResponseEntity<HypermediaControl> wrapInResponseEntity( HypermediaControl control,
-                                                                           HttpStatus status,
-                                                                           HttpHeaders headers = new HttpHeaders() ) {
-        new ResponseEntity<>( control, headers, status )
-    }
+
 }
