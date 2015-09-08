@@ -50,7 +50,7 @@ class RestInboundGatewayIntegrationTest extends Specification implements Generat
 
     def possibleCommands = ['fast', 'normal', 'slow', 'dead']
     def services = ['gateway', 'mongodb', 'redis', 'mysql', 'postgresql', 'rabbitmq']
-    def expectations = services.collectEntries { [(it): randomElement(possibleCommands)] }
+    def expectations = services.collect { [(it): randomElement(possibleCommands)] }
 
     def 'exercise happy path'() {
 
@@ -76,7 +76,8 @@ class RestInboundGatewayIntegrationTest extends Specification implements Generat
         response.statusCode == HttpStatus.OK
 
         and: 'the expected fields are present'
-        def json = new JsonSlurper().parseText( response.body ) as Map<String,String>
-        json == expectations // a lame test but works for now
+        def json = new JsonSlurper().parseText( response.body ) as List
+        def alive = json.collect { Map it -> it['service'] }
+        services.every { it in alive } // silly but for now just make sure that each service responded
     }
 }

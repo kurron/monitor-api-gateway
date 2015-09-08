@@ -88,15 +88,16 @@ class RestInboundGateway extends AbstractFeedbackAware {
     @RequestMapping( method = POST, consumes = [APPLICATION_JSON_VALUE], produces = [APPLICATION_JSON_VALUE] )
     ResponseEntity<String> post( @RequestBody final String request ) {
         counterService.increment( 'example.post' )
-        def parsed = new JsonSlurper().parseText( request ) as Map<String,String>
+        def parsed = new JsonSlurper().parseText( request ) as List
         withPool( parsed.size() ) {
-            def results = parsed.makeConcurrent().collect { String k, v ->
-                ResponseEntity<String> response = theTemplate.getForEntity( toEndPoint( k ), String )
-                [service: k, command: v, status: response.statusCode, result: response.body]
+            def results = parsed.makeConcurrent().collect { Map command ->
+                def service = command.entrySet().first().key as String
+                def action = command.entrySet().first().value as String
+                ResponseEntity<String> response = theTemplate.getForEntity( toEndPoint( service ), String )
+                [service: service, command: action, status: response.statusCode, result: 'response.body']
             }
             def builder = new JsonBuilder( results )
-            // for now, echo back the request
-            new ResponseEntity<String>( request, HttpStatus.OK )
+            new ResponseEntity<String>( builder.toPrettyString(), HttpStatus.OK )
         } as ResponseEntity<String>
     }
 
