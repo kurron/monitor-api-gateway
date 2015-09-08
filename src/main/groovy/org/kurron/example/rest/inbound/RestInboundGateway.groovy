@@ -20,6 +20,7 @@ import static org.springframework.http.MediaType.APPLICATION_JSON_VALUE
 import static org.springframework.web.bind.annotation.RequestMethod.POST
 import groovy.json.JsonBuilder
 import groovy.json.JsonSlurper
+import groovy.transform.CompileDynamic
 import org.kurron.example.rest.ApplicationProperties
 import org.kurron.feedback.AbstractFeedbackAware
 import org.kurron.stereotype.InboundRestGateway
@@ -83,12 +84,13 @@ class RestInboundGateway extends AbstractFeedbackAware {
         "rabbitmq": "fast"
     }
      */
+    @CompileDynamic
     @RequestMapping( method = POST, consumes = [APPLICATION_JSON_VALUE], produces = [APPLICATION_JSON_VALUE] )
     ResponseEntity<String> post( @RequestBody final String request ) {
         counterService.increment( 'example.post' )
-        def slurper = new JsonSlurper().parseText( request ) as Map<String,String>
-        withPool( slurper.size() ) {
-            def results = slurper.makeConcurrent().collect { String k, v ->
+        def parsed = new JsonSlurper().parseText( request ) as Map<String,String>
+        withPool( parsed.size() ) {
+            def results = parsed.makeConcurrent().collect { String k, v ->
                 ResponseEntity<String> response = theTemplate.getForEntity( toEndPoint( k ), String )
                 [service: k, command: v, status: response.statusCode, result: response.body]
             }
