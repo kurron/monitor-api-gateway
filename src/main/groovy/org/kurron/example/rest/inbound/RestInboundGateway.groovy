@@ -64,30 +64,10 @@ class RestInboundGateway extends AbstractFeedbackAware {
         theTemplate = aTemplate
     }
 
-    /*
-    request:
-    {
-        "gateway": "fast",
-        "mongodb": "normal",
-        "redis": "slow",
-        "mysql": "dead",
-        "postgresql": "fast",
-        "rabbitmq": "fast"
-    }
-    response:
-    {
-        "gateway": "fast",
-        "mongodb": "normal",
-        "redis": "slow",
-        "mysql": "dead",
-        "postgresql": "fast",
-        "rabbitmq": "fast"
-    }
-     */
     @CompileDynamic
     @RequestMapping( method = POST, consumes = [APPLICATION_JSON_VALUE], produces = [APPLICATION_JSON_VALUE] )
     ResponseEntity<String> post( @RequestBody final String request ) {
-        counterService.increment( 'example.post' )
+        counterService.increment( 'gateway.post' )
         def parsed = new JsonSlurper().parseText( request ) as List
         withPool( parsed.size() ) {
             def results = parsed.makeConcurrent().collect { Map command ->
