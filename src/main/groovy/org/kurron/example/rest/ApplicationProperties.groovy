@@ -24,9 +24,9 @@ import org.springframework.boot.context.properties.ConfigurationProperties
 class ApplicationProperties {
 
     /**
-     * The maximum payload size that the server will accept, in Megabytes.
+     * The port the MongoDB service is listening on.
      */
-    long maxPayloadSize
+    int mongodbServicePort
 
     /**
      * Flag controlling whether or not the correlation id is required.

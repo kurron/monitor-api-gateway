@@ -26,8 +26,12 @@ import org.kurron.feedback.AbstractFeedbackAware
 import org.kurron.stereotype.InboundRestGateway
 import org.springframework.beans.factory.annotation.Autowired
 import org.springframework.boot.actuate.metrics.CounterService
+import org.springframework.http.HttpEntity
+import org.springframework.http.HttpHeaders
 import org.springframework.http.HttpStatus
+import org.springframework.http.MediaType
 import org.springframework.http.ResponseEntity
+import org.springframework.messaging.handler.annotation.Header
 import org.springframework.web.bind.annotation.RequestBody
 import org.springframework.web.bind.annotation.RequestMapping
 import org.springframework.web.client.RestOperations
@@ -55,6 +59,11 @@ class RestInboundGateway extends AbstractFeedbackAware {
      **/
     private final RestOperations theTemplate
 
+    /**
+     * Mapping of service names to their service endpoints
+     **/
+    private final def serviceToUriMap = [default: UriComponentsBuilder.newInstance().scheme( 'http' ).host( 'google.com' ).path( '/' ).build().toUri()]
+
     @Autowired
     RestInboundGateway( final ApplicationProperties aConfiguration,
                         final CounterService aCounterService,
@@ -62,26 +71,33 @@ class RestInboundGateway extends AbstractFeedbackAware {
         configuration = aConfiguration
         counterService = aCounterService
         theTemplate = aTemplate
+        serviceToUriMap['mongodb'] = UriComponentsBuilder.newInstance().scheme( 'http' ).host( 'localhost' ).port( configuration.mongodbServicePort ).path( '/' ).build().toUri()
     }
 
     @CompileDynamic
     @RequestMapping( method = POST, consumes = [APPLICATION_JSON_VALUE], produces = [APPLICATION_JSON_VALUE] )
-    ResponseEntity<String> post( @RequestBody final String request ) {
+    ResponseEntity<String> post( @RequestBody final String request, @Header( 'X-Correlation-Id' ) Optional<String> correlationID ) {
         counterService.increment( 'gateway.post' )
         def parsed = new JsonSlurper().parseText( request ) as List
         withPool( parsed.size() ) {
-            def results = parsed.makeConcurrent().collect { Map command ->
-                def service = command.entrySet().first().key as String
-                def action = command.entrySet().first().value as String
-                ResponseEntity<String> response = theTemplate.getForEntity( toEndPoint( service ), String )
-                [service: service, command: action, status: response.statusCode, result: 'response.body']
+            def results = parsed.makeConcurrent().collect { Map serviceActions ->
+                def service = serviceActions.entrySet().first().key as String
+                def action = serviceActions.entrySet().first().value as String
+                def builder = new JsonBuilder( ['command': action] )
+                def command = builder.toPrettyString()
+                def headers = new HttpHeaders()
+                headers.setContentType( MediaType.APPLICATION_JSON )
+                headers.set( 'X-Correlation-Id', correlationID.orElse( 'FIGURE OUT WHY HTTP HEADERS ARE NOT GETTING TRANSFERRED!' ) )
+                HttpEntity<String> requestEntity = new HttpEntity<>( command, headers )
+                ResponseEntity<Void> response = theTemplate.postForEntity( toEndPoint( service ), requestEntity, Void )
+                [service: service, command: action, status: response.statusCode]
             }
             def builder = new JsonBuilder( results )
             new ResponseEntity<String>( builder.toPrettyString(), HttpStatus.OK )
         } as ResponseEntity<String>
     }
 
-    private static URI toEndPoint( String service ) {
-        UriComponentsBuilder.newInstance().scheme( 'http' ).host( 'google.com' ).path( '/' ).build().toUri()
+    private URI toEndPoint( String service ) {
+        serviceToUriMap[(service)] ?: serviceToUriMap['mongodb']
     }
 }

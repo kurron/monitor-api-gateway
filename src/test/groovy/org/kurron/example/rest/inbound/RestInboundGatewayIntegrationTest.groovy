@@ -49,7 +49,8 @@ class RestInboundGatewayIntegrationTest extends Specification implements Generat
     int port
 
     def possibleCommands = ['fast', 'normal', 'slow', 'dead']
-    def services = ['gateway', 'mongodb', 'redis', 'mysql', 'postgresql', 'rabbitmq']
+//  def services = ['gateway', 'mongodb', 'redis', 'mysql', 'postgresql', 'rabbitmq']
+    def services = ['mongodb']
     def expectations = services.collect { [(it): randomElement(possibleCommands)] }
 
     def 'exercise happy path'() {
@@ -65,7 +66,7 @@ class RestInboundGatewayIntegrationTest extends Specification implements Generat
         def uri = UriComponentsBuilder.newInstance().scheme( 'http' ).host( 'localhost' ).port( port ).path( '/' ).build().toUri()
         def headers = new HttpHeaders()
         headers.setContentType( MediaType.APPLICATION_JSON )
-        headers.set( 'X-Correlation-Id', randomHexString() )
+        headers.add( 'X-Correlation-Id', randomHexString() )
         HttpEntity<String> request = new HttpEntity<>( command, headers )
         Future<ResponseEntity<String>> future = theTemplate.postForEntity( uri, request, String )
 
