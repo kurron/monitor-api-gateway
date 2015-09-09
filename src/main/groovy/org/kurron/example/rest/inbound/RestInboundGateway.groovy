@@ -87,6 +87,7 @@ class RestInboundGateway extends AbstractFeedbackAware {
         rabbitTemplate = aRabbitTemplate
         serviceToUriMap['mongodb'] = UriComponentsBuilder.newInstance().scheme( 'http' ).host( 'localhost' ).port( configuration.mongodbServicePort ).path( '/' ).build().toUri()
         serviceToUriMap['redis'] = UriComponentsBuilder.newInstance().scheme( 'http' ).host( 'localhost' ).port( configuration.redisServicePort ).path( '/' ).build().toUri()
+        serviceToUriMap['mysql'] = UriComponentsBuilder.newInstance().scheme( 'http' ).host( 'localhost' ).port( configuration.mySqlServicePort ).path( '/' ).build().toUri()
     }
 
     @CompileDynamic

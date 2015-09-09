@@ -39,6 +39,11 @@ class ApplicationProperties {
     int redisServicePort
 
     /**
+     * The port the MySQL service is listening on.
+     */
+    int mySqlServicePort
+
+    /**
      * Flag controlling whether or not the correlation id is required.
      */
     boolean requireCorrelationId

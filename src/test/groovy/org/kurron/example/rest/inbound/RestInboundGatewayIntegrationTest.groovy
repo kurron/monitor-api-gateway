@@ -50,7 +50,7 @@ class RestInboundGatewayIntegrationTest extends Specification implements Generat
 
     def possibleCommands = ['fast', 'normal', 'slow', 'dead']
 //  def services = ['gateway', 'mongodb', 'redis', 'mysql', 'postgresql', 'rabbitmq']
-    def services = ['mongodb', 'redis']
+    def services = ['mongodb', 'redis', 'mysql']
     def expectations = services.collect { [(it): randomElement(possibleCommands)] }
 
     def 'exercise happy path'() {
