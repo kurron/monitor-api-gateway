@@ -34,6 +34,11 @@ class ApplicationProperties {
     int mongodbServicePort
 
     /**
+     * The port the Redis service is listening on.
+     */
+    int redisServicePort
+
+    /**
      * Flag controlling whether or not the correlation id is required.
      */
     boolean requireCorrelationId

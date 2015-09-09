@@ -64,6 +64,7 @@ logging:
 example:
     exchange: monitoring
     mongodbServicePort: 8100
+    redisServicePort: 8200
     requireCorrelationId: true
 
 #---------e Profile specific overrides ----------#
