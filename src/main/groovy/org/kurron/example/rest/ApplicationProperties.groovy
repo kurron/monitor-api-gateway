@@ -44,6 +44,11 @@ class ApplicationProperties {
     int mySqlServicePort
 
     /**
+     * The port the PostgreSQL service is listening on.
+     */
+    int postgreSqlServicePort
+
+    /**
      * Flag controlling whether or not the correlation id is required.
      */
     boolean requireCorrelationId

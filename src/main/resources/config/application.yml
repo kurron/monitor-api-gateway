@@ -66,6 +66,7 @@ example:
     mongodbServicePort: 8100
     redisServicePort: 8200
     mySqlServicePort: 8300
+    postgreSqlServicePort: 8400
     requireCorrelationId: true
 
 #---------e Profile specific overrides ----------#
