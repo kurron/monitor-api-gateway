@@ -97,23 +97,38 @@ class RestInboundGateway extends AbstractFeedbackAware {
         def message = newMessage( request )
         rabbitTemplate.send( message )
 
+        def exceptionHandler = [uncaughtException: {} ] as Thread.UncaughtExceptionHandler
         def parsed = new JsonSlurper().parseText( request ) as List
-        withPool( parsed.size() ) {
+        withPool( parsed.size(), exceptionHandler ) {
             def results = parsed.makeConcurrent().collect { Map serviceActions ->
                 def service = serviceActions.entrySet().first().key as String
                 def action = serviceActions.entrySet().first().value as String
-                def builder = new JsonBuilder( ['command': action] )
-                def command = builder.toPrettyString()
-                def headers = new HttpHeaders()
-                headers.setContentType( MediaType.APPLICATION_JSON )
-                headers.set( 'X-Correlation-Id', correlationID.orElse( 'FIGURE OUT WHY HTTP HEADERS ARE NOT GETTING TRANSFERRED!' ) )
-                HttpEntity<String> requestEntity = new HttpEntity<>( command, headers )
-                ResponseEntity<Void> response = theTemplate.postForEntity( toEndPoint( service ), requestEntity, Void )
-                [service: service, command: action, status: response.statusCode]
+                HttpStatus status = callService( service, action, correlationID.orElse( 'FIGURE OUT WHY HTTP HEADERS ARE NOT GETTING TRANSFERRED!' ) )
+                [service: service, command: action, status: status]
             }
             def builder = new JsonBuilder( results )
             new ResponseEntity<String>( builder.toPrettyString(), HttpStatus.OK )
         } as ResponseEntity<String>
+    }
+
+    HttpStatus callService( String service, String action, String correlationID ) {
+        def builder = new JsonBuilder( ['command': action] )
+        def command = builder.toPrettyString()
+
+        def headers = new HttpHeaders()
+        headers.setContentType( MediaType.APPLICATION_JSON )
+        headers.set( 'X-Correlation-Id', correlationID )
+
+        HttpStatus status
+        try {
+            HttpEntity<String> requestEntity = new HttpEntity<>( command, headers )
+            ResponseEntity<Void> response = theTemplate.postForEntity( toEndPoint( service ), requestEntity, Void )
+            status = response.statusCode
+        }
+        catch( Exception e ) {
+            status = HttpStatus.BAD_GATEWAY
+        }
+        status
     }
 
     private URI toEndPoint( String service ) {

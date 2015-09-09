@@ -26,6 +26,7 @@ import org.springframework.boot.autoconfigure.SpringBootApplication
 import org.springframework.boot.context.properties.EnableConfigurationProperties
 import org.springframework.context.annotation.Bean
 import org.springframework.web.client.AsyncRestTemplate
+import org.springframework.web.client.ResponseErrorHandler
 import org.springframework.web.client.RestTemplate
 
 /**
@@ -77,7 +78,10 @@ class Application {
 
     @Bean
     RestTemplate restTemplate() {
-        new RestTemplate()
+        def errorHandler = [hasError: { false } ] as ResponseErrorHandler
+        def bean = new RestTemplate()
+        bean.errorHandler = errorHandler
+        bean
     }
 
     @Bean
