@@ -62,6 +62,7 @@ logging:
     config: classpath:logback.xml
 
 example:
+    exchange: monitoring
     mongodbServicePort: 8100
     requireCorrelationId: true
 

@@ -24,6 +24,11 @@ import org.springframework.boot.context.properties.ConfigurationProperties
 class ApplicationProperties {
 
     /**
+     * The exchange to publish to.
+     */
+    String exchange
+
+    /**
      * The port the MongoDB service is listening on.
      */
     int mongodbServicePort
