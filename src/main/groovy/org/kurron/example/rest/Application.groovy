@@ -25,7 +25,6 @@ import org.springframework.boot.SpringApplication
 import org.springframework.boot.autoconfigure.SpringBootApplication
 import org.springframework.boot.context.properties.EnableConfigurationProperties
 import org.springframework.context.annotation.Bean
-import org.springframework.http.converter.json.Jackson2ObjectMapperBuilder
 import org.springframework.web.client.AsyncRestTemplate
 import org.springframework.web.client.RestTemplate
 
@@ -69,17 +68,6 @@ class Application {
     @Bean
     FeedbackAwareBeanPostProcessor feedbackAwareBeanPostProcessor() {
         new FeedbackAwareBeanPostProcessor( serviceCode, serviceInstance, realm )
-    }
-
-    /**
-     * This bean will permit Jackson to be the codec for both JSON and XML.
-     * @return properly configured bean.
-     */
-    @Bean
-    Jackson2ObjectMapperBuilder jacksonBuilder() {
-        def bean = new Jackson2ObjectMapperBuilder()
-        bean.createXmlMapper( true )
-        bean
     }
 
     @Bean
