@@ -111,7 +111,9 @@ class RestInboundGateway extends AbstractFeedbackAware {
                 [service: service, command: action, status: status]
             }
             def builder = new JsonBuilder( results )
-            new ResponseEntity<String>( builder.toPrettyString(), HttpStatus.OK )
+            new ResponseEntity<String>( builder.toPrettyString(), results.collect { entry ->
+                entry['status']
+            }.every { it == HttpStatus.OK } ? HttpStatus.OK : HttpStatus.BAD_GATEWAY )
         } as ResponseEntity<String>
 
         response
