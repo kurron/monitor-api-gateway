@@ -22,6 +22,7 @@ import static org.springframework.web.bind.annotation.RequestMethod.POST
 import groovy.json.JsonBuilder
 import groovy.json.JsonSlurper
 import groovy.transform.CompileDynamic
+import java.util.concurrent.ThreadLocalRandom
 import org.kurron.example.rest.ApplicationProperties
 import org.kurron.feedback.AbstractFeedbackAware
 import org.kurron.stereotype.InboundRestGateway
@@ -103,7 +104,7 @@ class RestInboundGateway extends AbstractFeedbackAware {
             def results = parsed.makeConcurrent().collect { Map serviceActions ->
                 def service = serviceActions.entrySet().first().key as String
                 def action = serviceActions.entrySet().first().value as String
-                HttpStatus status = callService( service, action, correlationID.orElse( 'FIGURE OUT WHY HTTP HEADERS ARE NOT GETTING TRANSFERRED!' ) )
+                HttpStatus status = callService( service, action, correlationID.orElse( Integer.toHexString( ThreadLocalRandom.newInstance().nextInt( 0, Integer.MAX_VALUE ) ) ) )
 
                 rabbitTemplate.send( newMessage( action ) )
 
@@ -130,7 +131,7 @@ class RestInboundGateway extends AbstractFeedbackAware {
             ResponseEntity<Void> response = theTemplate.postForEntity( toEndPoint( service ), requestEntity, Void )
             status = response.statusCode
         }
-        catch( Exception e ) {
+        catch( Exception ignored ) {
             status = HttpStatus.BAD_GATEWAY
         }
         status
