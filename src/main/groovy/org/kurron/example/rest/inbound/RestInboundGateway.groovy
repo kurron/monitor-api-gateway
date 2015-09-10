@@ -96,21 +96,24 @@ class RestInboundGateway extends AbstractFeedbackAware {
     ResponseEntity<String> post( @RequestBody final String request, @Header( 'X-Correlation-Id' ) Optional<String> correlationID ) {
         counterService.increment( 'gateway.post' )
 
-        def message = newMessage( request )
-        rabbitTemplate.send( message )
 
         def exceptionHandler = [uncaughtException: {} ] as Thread.UncaughtExceptionHandler
         def parsed = new JsonSlurper().parseText( request ) as List
-        withPool( parsed.size(), exceptionHandler ) {
+        def response = withPool( parsed.size(), exceptionHandler ) {
             def results = parsed.makeConcurrent().collect { Map serviceActions ->
                 def service = serviceActions.entrySet().first().key as String
                 def action = serviceActions.entrySet().first().value as String
                 HttpStatus status = callService( service, action, correlationID.orElse( 'FIGURE OUT WHY HTTP HEADERS ARE NOT GETTING TRANSFERRED!' ) )
+
+                rabbitTemplate.send( newMessage( action ) )
+
                 [service: service, command: action, status: status]
             }
             def builder = new JsonBuilder( results )
             new ResponseEntity<String>( builder.toPrettyString(), HttpStatus.OK )
         } as ResponseEntity<String>
+
+        response
     }
 
     HttpStatus callService( String service, String action, String correlationID ) {
@@ -140,7 +143,7 @@ class RestInboundGateway extends AbstractFeedbackAware {
 
     private static MessageProperties newProperties() {
         MessagePropertiesBuilder.newInstance().setAppId( 'monitor-api-gateway' )
-                .setContentType( 'application/json' )
+                .setContentType( 'text/plain' )
                 .setMessageId( UUID.randomUUID().toString() )
                 .setDeliveryMode( MessageDeliveryMode.NON_PERSISTENT )
                 .setTimestamp( Calendar.instance.time )
@@ -150,7 +153,7 @@ class RestInboundGateway extends AbstractFeedbackAware {
     private static Message newMessage( String request ) {
         def properties = newProperties()
         MessageBuilder.withBody( request.getBytes( UTF_8  ) )
-                .andProperties( properties )
-                .build()
+                      .andProperties( properties )
+                      .build()
     }
 }
