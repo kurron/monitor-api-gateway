@@ -15,9 +15,16 @@
  */
 
 bintray {
-    user = 'kurron'
+    user = System.getenv('BINTRAY_USER')
     key = System.getenv( 'BINTRAY_KEY' )
     publications = ['mavenPublish']
+/*
+    filesSpec {
+        from '/home/vagrant/GitHub/monitor-api-gateway/build/libs'
+        into '/'
+        include "*.jar"
+    }
+*/
     pkg {
         repo = 'maven'
         name = 'monitor-api-gateway'
@@ -35,4 +42,6 @@ bintray {
         }
     }
 }
+
+[bintrayUpload]*.dependsOn bootRepackage
 
