@@ -40,15 +40,13 @@ class MongoDbServiceHealthCheck extends AbstractFeedbackAware implements HealthI
      **/
     private final RestOperations theTemplate
 
-    /**
-     * The health endpoint for the downstream service.
-     **/
-    private final URI theURI
-
     MongoDbServiceHealthCheck( final ApplicationProperties aConfiguration, final RestOperations aTemplate ) {
         theConfiguration = aConfiguration
         theTemplate = aTemplate
-        theURI = UriComponentsBuilder.newInstance().scheme( 'http' ).host( 'localhost' ).port( theConfiguration.mongodbServicePort ).path( '/operations/health' ).build().toUri()
+    }
+
+    URI healthURI() {
+        UriComponentsBuilder.newInstance().scheme( 'http' ).host( 'localhost' ).port( theConfiguration.mongodbServicePort ).path( '/operations/health' ).build().toUri()
     }
 
     @Override
@@ -60,7 +58,7 @@ class MongoDbServiceHealthCheck extends AbstractFeedbackAware implements HealthI
     HttpStatus callHealthEndpoint() {
         HttpStatus status
         try {
-            ResponseEntity<String> response = theTemplate.getForEntity( theURI, String )
+            ResponseEntity<String> response = theTemplate.getForEntity( healthURI(), String )
             status = response.statusCode
         }
         catch( Exception ignored ) {
