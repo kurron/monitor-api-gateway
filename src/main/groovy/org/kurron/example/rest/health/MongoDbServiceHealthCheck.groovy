@@ -16,54 +16,16 @@
 
 package org.kurron.example.rest.health
 
-import org.kurron.example.rest.ApplicationProperties
-import org.kurron.feedback.AbstractFeedbackAware
-import org.springframework.boot.actuate.health.Health
-import org.springframework.boot.actuate.health.HealthIndicator
-import org.springframework.http.HttpStatus
-import org.springframework.http.ResponseEntity
-import org.springframework.web.client.RestOperations
+import groovy.transform.InheritConstructors
 import org.springframework.web.util.UriComponentsBuilder
 
 /**
  * Attempts to contact the downstream service and determines its health.
  **/
-class MongoDbServiceHealthCheck extends AbstractFeedbackAware implements HealthIndicator {
-
-    /**
-     * Provides currently active property values.
-     */
-    private final ApplicationProperties theConfiguration
-
-    /**
-     * Manages REST interactions.
-     **/
-    private final RestOperations theTemplate
-
-    MongoDbServiceHealthCheck( final ApplicationProperties aConfiguration, final RestOperations aTemplate ) {
-        theConfiguration = aConfiguration
-        theTemplate = aTemplate
-    }
+@InheritConstructors
+class MongoDbServiceHealthCheck extends AbstractHealthCheck {
 
     URI healthURI() {
         UriComponentsBuilder.newInstance().scheme( 'http' ).host( 'localhost' ).port( theConfiguration.mongodbServicePort ).path( '/operations/health' ).build().toUri()
-    }
-
-    @Override
-    Health health() {
-        def status = callHealthEndpoint()
-        status == HttpStatus.OK ? Health.up().withDetail( 'HTTP Status', status ).build() : Health.down().withDetail( 'HTTP Status', status ).build()
-    }
-
-    HttpStatus callHealthEndpoint() {
-        HttpStatus status
-        try {
-            ResponseEntity<String> response = theTemplate.getForEntity( healthURI(), String )
-            status = response.statusCode
-        }
-        catch( Exception ignored ) {
-            status = HttpStatus.BAD_GATEWAY
-        }
-        status
     }
 }
