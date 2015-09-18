@@ -17,6 +17,7 @@ package org.kurron.example.rest
 
 import groovy.util.logging.Slf4j
 import org.kurron.example.rest.health.MongoDbServiceHealthCheck
+import org.kurron.example.rest.health.MySqlServiceHealthCheck
 import org.kurron.example.rest.health.RedisServiceHealthCheck
 import org.kurron.feedback.FeedbackAwareBeanPostProcessor
 import org.springframework.amqp.core.DirectExchange
@@ -106,5 +107,10 @@ class Application {
     @Bean
     RedisServiceHealthCheck redisService(  ApplicationProperties configuration, RestTemplate restTemplate ) {
         new RedisServiceHealthCheck( configuration, restTemplate )
+    }
+
+    @Bean
+    MySqlServiceHealthCheck mySqlService(  ApplicationProperties configuration, RestTemplate restTemplate ) {
+        new MySqlServiceHealthCheck( configuration, restTemplate )
     }
 }
