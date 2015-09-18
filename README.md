@@ -16,6 +16,7 @@ useful in determining the appropriateness of various monitoring and logging tool
 
 * [Java 8 JDK](http://www.oracle.com/technetwork/java/javase/downloads/index.html) installed and working
 * [Git](https://git-scm.com/) installed and working
+* [RabbitMQ](https://www.rabbitmq.com/) installed and working
 * Development and testing was done on [Ubuntu Linux](http://www.ubuntu.com/) but other JVM compatible operating systems should work as well
 
 #Building
