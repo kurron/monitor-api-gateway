@@ -104,9 +104,11 @@ class RestInboundGateway extends AbstractFeedbackAware {
             def results = parsed.makeConcurrent().collect { Map serviceActions ->
                 def service = serviceActions.entrySet().first().key as String
                 def action = serviceActions.entrySet().first().value as String
-                HttpStatus status = callService( service, action, correlationID.orElse( Integer.toHexString( ThreadLocalRandom.newInstance().nextInt( 0, Integer.MAX_VALUE ) ) ) )
 
-                rabbitTemplate.send( newMessage( action ) )
+                def loggingID = correlationID.orElse( Integer.toHexString( ThreadLocalRandom.newInstance().nextInt( 0, Integer.MAX_VALUE ) ) )
+                HttpStatus status = callService( service, action, loggingID )
+
+                rabbitTemplate.send( newMessage( action, loggingID ) )
 
                 [service: service, command: action, status: status]
             }
@@ -143,17 +145,18 @@ class RestInboundGateway extends AbstractFeedbackAware {
     }
 
 
-    private static MessageProperties newProperties() {
+    private static MessageProperties newProperties( String correlationID ) {
         MessagePropertiesBuilder.newInstance().setAppId( 'monitor-api-gateway' )
                 .setContentType( 'text/plain' )
                 .setMessageId( UUID.randomUUID().toString() )
                 .setDeliveryMode( MessageDeliveryMode.NON_PERSISTENT )
                 .setTimestamp( Calendar.instance.time )
+                .setCorrelationId( correlationID.getBytes( UTF_8  ) )
                 .build()
     }
 
-    private static Message newMessage( String request ) {
-        def properties = newProperties()
+    private static Message newMessage( String request, String correlationID ) {
+        def properties = newProperties( correlationID )
         MessageBuilder.withBody( request.getBytes( UTF_8  ) )
                       .andProperties( properties )
                       .build()
