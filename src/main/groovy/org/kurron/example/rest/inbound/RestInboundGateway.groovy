@@ -24,6 +24,7 @@ import groovy.json.JsonSlurper
 import groovy.transform.CompileDynamic
 import java.util.concurrent.ThreadLocalRandom
 import org.kurron.example.rest.ApplicationProperties
+import org.kurron.example.rest.feedback.ExampleFeedbackContext
 import org.kurron.feedback.AbstractFeedbackAware
 import org.kurron.stereotype.InboundRestGateway
 import org.springframework.amqp.core.Message
@@ -97,6 +98,8 @@ class RestInboundGateway extends AbstractFeedbackAware {
     ResponseEntity<String> post( @RequestBody final String request, @RequestHeader( 'X-Correlation-Id' ) Optional<String> correlationID ) {
         counterService.increment( 'gateway.post' )
 
+        def loggingID = correlationID.orElse( Integer.toHexString( ThreadLocalRandom.newInstance().nextInt( 0, Integer.MAX_VALUE ) ) )
+        feedbackProvider.sendFeedback( ExampleFeedbackContext.PROCESSING_REQUEST, loggingID )
 
         def exceptionHandler = [uncaughtException: {} ] as Thread.UncaughtExceptionHandler
         def parsed = new JsonSlurper().parseText( request ) as List
@@ -105,7 +108,6 @@ class RestInboundGateway extends AbstractFeedbackAware {
                 def service = serviceActions.entrySet().first().key as String
                 def action = serviceActions.entrySet().first().value as String
 
-                def loggingID = correlationID.orElse( Integer.toHexString( ThreadLocalRandom.newInstance().nextInt( 0, Integer.MAX_VALUE ) ) )
                 HttpStatus status = callService( service, action, loggingID )
 
                 rabbitTemplate.send( newMessage( action, loggingID ) )
