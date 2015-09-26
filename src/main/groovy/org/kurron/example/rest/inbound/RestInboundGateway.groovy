@@ -15,7 +15,6 @@
  */
 package org.kurron.example.rest.inbound
 
-import static groovyx.gpars.GParsPool.withPool
 import static java.nio.charset.StandardCharsets.UTF_8
 import static org.springframework.http.MediaType.APPLICATION_JSON_VALUE
 import static org.springframework.web.bind.annotation.RequestMethod.POST
@@ -101,25 +100,20 @@ class RestInboundGateway extends AbstractFeedbackAware {
         def loggingID = correlationID.orElse( Integer.toHexString( ThreadLocalRandom.newInstance().nextInt( 0, Integer.MAX_VALUE ) ) )
         feedbackProvider.sendFeedback( ExampleFeedbackContext.PROCESSING_REQUEST, loggingID )
 
-        def exceptionHandler = [uncaughtException: {} ] as Thread.UncaughtExceptionHandler
         def parsed = new JsonSlurper().parseText( request ) as List
-        def response = withPool( parsed.size(), exceptionHandler ) {
-            def results = parsed.makeSequential().collect { Map serviceActions ->
-                def service = serviceActions.entrySet().first().key as String
-                def action = serviceActions.entrySet().first().value as String
+        def results = parsed.collect { Map serviceActions ->
+            def service = serviceActions.entrySet().first().key as String
+            def action = serviceActions.entrySet().first().value as String
 
-                HttpStatus status = callService( service, action, loggingID )
+            HttpStatus status = callService( service, action, loggingID )
 
-                rabbitTemplate.send( newMessage( action, loggingID ) )
+            rabbitTemplate.send( newMessage( action, loggingID ) )
 
-                [service: service, command: action, status: status]
-            }
-            def builder = new JsonBuilder( results )
-            def downStreamStatus = results.collect { entry -> entry['status'] }.every { HttpStatus status -> status.is2xxSuccessful() } ? HttpStatus.OK : HttpStatus.BAD_GATEWAY
-            new ResponseEntity<String>( builder.toPrettyString(), downStreamStatus )
-        } as ResponseEntity<String>
-
-        response
+            [service: service, command: action, status: status]
+        }
+        def builder = new JsonBuilder( results )
+        def downStreamStatus = results.collect { entry -> entry['status'] }.every { HttpStatus status -> status.is2xxSuccessful() } ? HttpStatus.OK : HttpStatus.BAD_GATEWAY
+        new ResponseEntity<String>( builder.toPrettyString(), downStreamStatus )
     }
 
     HttpStatus callService( String service, String action, String correlationID ) {
