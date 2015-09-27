@@ -20,7 +20,6 @@ import static org.springframework.http.MediaType.APPLICATION_JSON_VALUE
 import static org.springframework.web.bind.annotation.RequestMethod.POST
 import groovy.json.JsonBuilder
 import groovy.json.JsonSlurper
-import groovy.transform.CompileDynamic
 import java.util.concurrent.ThreadLocalRandom
 import org.kurron.example.rest.ApplicationProperties
 import org.kurron.example.rest.feedback.ExampleFeedbackContext
@@ -92,7 +91,6 @@ class RestInboundGateway extends AbstractFeedbackAware {
         serviceToUriMap['postgresql'] = UriComponentsBuilder.newInstance().scheme( 'http' ).host( 'localhost' ).port( configuration.postgreSqlServicePort ).path( '/' ).build().toUri()
     }
 
-    @CompileDynamic
     @RequestMapping( method = POST, consumes = [APPLICATION_JSON_VALUE], produces = [APPLICATION_JSON_VALUE] )
     ResponseEntity<String> post( @RequestBody final String request, @RequestHeader( 'X-Correlation-Id' ) Optional<String> correlationID ) {
         counterService.increment( 'gateway.post' )
@@ -100,19 +98,17 @@ class RestInboundGateway extends AbstractFeedbackAware {
         def loggingID = correlationID.orElse( Integer.toHexString( ThreadLocalRandom.newInstance().nextInt( 0, Integer.MAX_VALUE ) ) )
         feedbackProvider.sendFeedback( ExampleFeedbackContext.PROCESSING_REQUEST, loggingID )
 
-        def parsed = new JsonSlurper().parseText( request ) as List
-        def results = parsed.collect { Map serviceActions ->
-            def service = serviceActions.entrySet().first().key as String
-            def action = serviceActions.entrySet().first().value as String
-
-            HttpStatus status = callService( service, action, loggingID )
-
+        def parsed = new JsonSlurper().parseText( request )
+        def results = parsed.collect { Map<String,String> serviceActions ->
+            def service = serviceActions.entrySet().first().key
+            def action = serviceActions.entrySet().first().value
+            def status = callService( service, action, loggingID )
             rabbitTemplate.send( newMessage( action, loggingID ) )
-
             [service: service, command: action, status: status]
         }
         def builder = new JsonBuilder( results )
-        def downStreamStatus = results.collect { entry -> entry['status'] }.every { HttpStatus status -> status.is2xxSuccessful() } ? HttpStatus.OK : HttpStatus.BAD_GATEWAY
+        def resultingStatus = results.collect { entry -> entry['status'] } as List<HttpStatus>
+        def downStreamStatus = resultingStatus.every { HttpStatus status -> status.is2xxSuccessful() } ? HttpStatus.OK : HttpStatus.BAD_GATEWAY
         new ResponseEntity<String>( builder.toPrettyString(), downStreamStatus )
     }
 
